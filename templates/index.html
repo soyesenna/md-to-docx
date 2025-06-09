@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Markdown to DOCX 변환기</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -14,59 +18,65 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             background-color: #f5f5f5;
-            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
         }
         
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
+        .header {
             background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         
         h1 {
-            text-align: center;
             color: #333;
-            margin-bottom: 30px;
+            font-size: 24px;
         }
         
-        .upload-form {
-            border: 2px dashed #ccc;
+        .main-container {
+            display: flex;
+            height: calc(100vh - 140px);
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .editor-section, .preview-section {
+            flex: 1;
+            background-color: white;
             border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            transition: border-color 0.3s;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
         }
         
-        .upload-form.dragover {
-            border-color: #4CAF50;
-            background-color: #f0f8f0;
+        .section-header {
+            padding: 15px 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 500;
+            color: #495057;
         }
         
-        .file-input-wrapper {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-            margin-bottom: 20px;
+        .upload-button {
+            margin-bottom: 10px;
         }
         
         .file-input {
-            position: absolute;
-            opacity: 0;
-            width: 100%;
-            height: 100%;
-            cursor: pointer;
+            display: none;
         }
         
         .file-input-label {
             display: inline-block;
-            padding: 12px 24px;
+            padding: 8px 16px;
             background-color: #4CAF50;
             color: white;
             border-radius: 5px;
-            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
             transition: background-color 0.3s;
         }
         
@@ -74,15 +84,109 @@
             background-color: #45a049;
         }
         
-        .file-name {
-            margin-top: 10px;
-            color: #666;
+        .editor-textarea {
+            flex: 1;
+            padding: 20px;
+            border: none;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+        
+        .preview-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        
+        /* Markdown Preview Styles */
+        .preview-content h1 { margin: 20px 0 15px; color: #333; }
+        .preview-content h2 { margin: 18px 0 12px; color: #444; }
+        .preview-content h3 { margin: 16px 0 10px; color: #555; }
+        .preview-content h4 { margin: 14px 0 8px; color: #666; }
+        .preview-content h5 { margin: 12px 0 6px; color: #777; }
+        .preview-content h6 { margin: 10px 0 5px; color: #888; }
+        
+        .preview-content p { margin: 10px 0; }
+        .preview-content ul, .preview-content ol { margin: 10px 0; padding-left: 30px; }
+        .preview-content li { margin: 5px 0; }
+        
+        .preview-content pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .preview-content code {
+            background-color: #f5f5f5;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: 'Courier New', Courier, monospace;
             font-size: 14px;
         }
         
+        .preview-content pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        
+        .preview-content blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 20px;
+            margin: 15px 0;
+            color: #666;
+        }
+        
+        .preview-content table {
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        
+        .preview-content th, .preview-content td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+        }
+        
+        .preview-content th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        
+        .preview-content img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .preview-content a {
+            color: #2196F3;
+            text-decoration: none;
+        }
+        
+        .preview-content a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Math block styles */
+        .math-block {
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+        
+        .action-bar {
+            background-color: white;
+            padding: 20px;
+            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        
         .convert-button {
-            width: 100%;
-            padding: 15px;
+            padding: 12px 40px;
             background-color: #2196F3;
             color: white;
             border: none;
@@ -91,11 +195,9 @@
             font-weight: 500;
             cursor: pointer;
             transition: background-color 0.3s;
-            margin-top: 20px;
-            display: none;
         }
         
-        .convert-button:hover {
+        .convert-button:hover:not(:disabled) {
             background-color: #1976D2;
         }
         
@@ -106,18 +208,17 @@
         
         .loading {
             display: none;
-            text-align: center;
-            margin-top: 20px;
+            margin-left: 20px;
         }
         
         .spinner {
+            display: inline-block;
             border: 3px solid #f3f3f3;
             border-top: 3px solid #2196F3;
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
         }
         
         @keyframes spin {
@@ -125,124 +226,186 @@
             100% { transform: rotate(360deg); }
         }
         
-        .error-message {
-            color: #f44336;
-            margin-top: 20px;
+        .message {
+            margin-top: 10px;
             padding: 10px;
-            background-color: #ffebee;
             border-radius: 5px;
             display: none;
         }
         
+        .error-message {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
         .success-message {
-            color: #4CAF50;
-            margin-top: 20px;
-            padding: 10px;
             background-color: #e8f5e9;
-            border-radius: 5px;
-            display: none;
+            color: #2e7d32;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Markdown → DOCX 변환기</h1>
-        
-        <form id="uploadForm" enctype="multipart/form-data">
-            <div class="upload-form" id="uploadArea">
-                <div class="file-input-wrapper">
+    <div class="header">
+        <h1>(지혁이를 위한ㅋㅋ)Markdown → DOCX 변환기</h1>
+    </div>
+    
+    <div class="main-container">
+        <div class="editor-section">
+            <div class="section-header">
+                <div class="upload-button">
                     <input type="file" id="fileInput" class="file-input" accept=".md,.markdown" />
-                    <label for="fileInput" class="file-input-label">파일 선택</label>
+                    <label for="fileInput" class="file-input-label">📁 Markdown 파일 열기</label>
                 </div>
-                <p style="color: #666; margin-top: 10px;">또는 파일을 여기에 드래그하세요</p>
-                <div class="file-name" id="fileName"></div>
+                <div>Markdown 편집기</div>
             </div>
-            
-            <button type="submit" class="convert-button" id="convertButton">DOCX로 변환</button>
-        </form>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p style="margin-top: 10px;">변환 중...</p>
+            <textarea id="markdownEditor" class="editor-textarea" placeholder="여기에 Markdown을 입력하세요...
+
+# 제목 1
+## 제목 2
+
+- 목록 항목 1
+- 목록 항목 2
+
+**굵은 텍스트** 와 *기울임 텍스트*
+
+[링크](https://example.com)
+
+## 수식 예제
+
+인라인 수식: $E = mc^2$
+
+블록 수식:
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+행렬:
+$$
+\begin{pmatrix}
+a & b \\
+c & d
+\end{pmatrix}
+$$"></textarea>
         </div>
         
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
+        <div class="preview-section">
+            <div class="section-header">미리보기</div>
+            <div id="preview" class="preview-content"></div>
+        </div>
+    </div>
+    
+    <div class="action-bar">
+        <button id="convertButton" class="convert-button">DOCX로 변환 및 다운로드</button>
+        <span class="loading" id="loading">
+            <span class="spinner"></span>
+            변환 중...
+        </span>
+        <div class="message error-message" id="errorMessage"></div>
+        <div class="message success-message" id="successMessage"></div>
     </div>
     
     <script>
-        const uploadForm = document.getElementById('uploadForm');
-        const uploadArea = document.getElementById('uploadArea');
+        const markdownEditor = document.getElementById('markdownEditor');
+        const preview = document.getElementById('preview');
         const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
         const convertButton = document.getElementById('convertButton');
         const loading = document.getElementById('loading');
         const errorMessage = document.getElementById('errorMessage');
         const successMessage = document.getElementById('successMessage');
         
-        // 파일 선택 이벤트
-        fileInput.addEventListener('change', function(e) {
+        // Marked.js 설정
+        marked.setOptions({
+            breaks: true,
+            gfm: true,
+            headerIds: true,
+            mangle: false,
+            pedantic: false,
+            smartypants: false,
+            highlight: function(code, lang) {
+                return code;
+            }
+        });
+        
+        // KaTeX 렌더링 옵션
+        const katexOptions = {
+            delimiters: [
+                {left: '$$', right: '$$', display: true},
+                {left: '$', right: '$', display: false},
+                {left: '\\(', right: '\\)', display: false},
+                {left: '\\[', right: '\\]', display: true}
+            ],
+            throwOnError: false,
+            trust: true
+        };
+        
+        // 수식 블록 전처리 함수
+        function preprocessMath(text) {
+            // 멀티라인 $$ ... $$ 블록을 <div>로 감싸서 보호
+            let processedText = text.replace(/\n?\$\$([\s\S]*?)\$\$\n?/g, function(match, math) {
+                // 수식 내용을 div로 감싸서 반환
+                return '\n<div class="math-block">$$' + math.trim() + '$$</div>\n';
+            });
+            
+            return processedText;
+        }
+        
+        // 실시간 프리뷰 업데이트
+        function updatePreview() {
+            const markdownText = markdownEditor.value;
+            if (markdownText.trim() === '') {
+                preview.innerHTML = '<p style="color: #999;">미리보기가 여기에 표시됩니다...</p>';
+            } else {
+                // 수식 전처리
+                const mathProcessed = preprocessMath(markdownText);
+                
+                // Markdown 파싱
+                preview.innerHTML = marked.parse(mathProcessed);
+                
+                // KaTeX로 수식 렌더링
+                if (typeof renderMathInElement !== 'undefined') {
+                    renderMathInElement(preview, katexOptions);
+                }
+            }
+        }
+        
+        // 에디터 입력 이벤트
+        markdownEditor.addEventListener('input', updatePreview);
+        
+        // 파일 업로드 이벤트
+        fileInput.addEventListener('change', async function(e) {
             const file = e.target.files[0];
             if (file) {
-                fileName.textContent = file.name;
-                convertButton.style.display = 'block';
-            } else {
-                fileName.textContent = '';
-                convertButton.style.display = 'none';
-            }
-            hideMessages();
-        });
-        
-        // 드래그 앤 드롭 이벤트
-        uploadArea.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-        
-        uploadArea.addEventListener('dragleave', function(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-        });
-        
-        uploadArea.addEventListener('drop', function(e) {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            
-            const files = e.dataTransfer.files;
-            if (files.length > 0) {
-                const file = files[0];
-                if (file.name.endsWith('.md') || file.name.endsWith('.markdown')) {
-                    fileInput.files = files;
-                    fileName.textContent = file.name;
-                    convertButton.style.display = 'block';
+                try {
+                    const text = await file.text();
+                    markdownEditor.value = text;
+                    updatePreview();
                     hideMessages();
-                } else {
-                    showError('Markdown 파일(.md, .markdown)만 업로드할 수 있습니다.');
+                } catch (error) {
+                    showError('파일을 읽는 중 오류가 발생했습니다.');
                 }
             }
         });
         
-        // 폼 제출 이벤트
-        uploadForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
+        // 변환 버튼 클릭 이벤트
+        convertButton.addEventListener('click', async function() {
+            const markdownText = markdownEditor.value.trim();
             
-            const file = fileInput.files[0];
-            if (!file) {
-                showError('파일을 선택해주세요.');
+            if (!markdownText) {
+                showError('변환할 내용을 입력해주세요.');
                 return;
             }
             
-            const formData = new FormData();
-            formData.append('file', file);
-            
             convertButton.disabled = true;
-            loading.style.display = 'block';
+            loading.style.display = 'inline-block';
             hideMessages();
             
             try {
-                const response = await fetch('/convert', {
+                const response = await fetch('/convert-text', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ markdown: markdownText })
                 });
                 
                 if (response.ok) {
@@ -251,15 +414,13 @@
                     const a = document.createElement('a');
                     a.style.display = 'none';
                     a.href = url;
-                    a.download = file.name.replace(/\.(md|markdown)$/, '.docx');
+                    a.download = 'document.docx';
                     document.body.appendChild(a);
                     a.click();
                     window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
                     
                     showSuccess('변환이 완료되었습니다!');
-                    fileInput.value = '';
-                    fileName.textContent = '';
-                    convertButton.style.display = 'none';
                 } else {
                     const error = await response.text();
                     showError(error || '변환 중 오류가 발생했습니다.');
@@ -282,12 +443,23 @@
             successMessage.textContent = message;
             successMessage.style.display = 'block';
             errorMessage.style.display = 'none';
+            setTimeout(() => {
+                successMessage.style.display = 'none';
+            }, 3000);
         }
         
         function hideMessages() {
             errorMessage.style.display = 'none';
             successMessage.style.display = 'none';
         }
+        
+        // 초기 프리뷰 업데이트
+        updatePreview();
+        
+        // KaTeX 라이브러리 로드 완료 후 재렌더링
+        window.addEventListener('load', () => {
+            setTimeout(updatePreview, 100);
+        });
     </script>
 </body>
 </html>
